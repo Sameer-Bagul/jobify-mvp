@@ -26,13 +26,13 @@ args = "Frontend"
 name = "Backend Server"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd server && npm run dev"
-waitForPort = 3001
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd server && PORT=3001 npm run dev"
+waitForPort = 3001
 
 [[workflows.workflow]]
 name = "Frontend"
@@ -51,14 +51,10 @@ localPort = 3001
 externalPort = 3001
 
 [[ports]]
-localPort = 5000
-externalPort = 80
-
-[[ports]]
 localPort = 44997
 externalPort = 3000
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["bash", "-c", "cd server && npm start & cd client && npm start"]
-build = ["bash", "-c", "cd server && npm run build && cd ../client && npm run build"]
+run = ["bash", "-c", "cd server && NODE_ENV=production node dist/index.js"]
+build = ["bash", "-c", "cd client && npm run build && cd ../server && npm run build"]
