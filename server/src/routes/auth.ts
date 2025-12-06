@@ -6,7 +6,12 @@ import { users, userProfiles, recruiters } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.warn("WARNING: JWT_SECRET not set. Using development fallback.");
+}
+const getJwtSecret = () => JWT_SECRET || "dev-secret-not-for-production";
 
 router.post("/signup", async (req, res) => {
   try {
@@ -42,7 +47,7 @@ router.post("/signup", async (req, res) => {
       });
     }
 
-    const token = jwt.sign({ userId: newUser.id, role: newUser.role }, JWT_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign({ userId: newUser.id, role: newUser.role }, getJwtSecret(), { expiresIn: "7d" });
 
     res.status(201).json({
       message: "User created successfully",
@@ -73,7 +78,7 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign({ userId: user.id, role: user.role }, getJwtSecret(), { expiresIn: "7d" });
 
     res.json({
       message: "Login successful",
