@@ -1,7 +1,4 @@
-'use client';
-
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -19,8 +16,8 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ role }: SidebarProps) {
-  const pathname = usePathname();
-  const router = useRouter();
+  const location = useLocation();
+  const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
 
   const seekerLinks = [
@@ -43,30 +40,34 @@ export default function Sidebar({ role }: SidebarProps) {
 
   const handleLogout = () => {
     logout();
-    router.push('/');
+    navigate('/');
   };
 
   return (
-    <div className="w-64 bg-white shadow-lg h-screen fixed left-0 top-0">
-      <div className="p-4 border-b">
-        <Link href="/" className="flex items-center">
-          <Briefcase className="h-8 w-8 text-indigo-600" />
-          <span className="ml-2 text-xl font-bold text-gray-900">JobSeeker Pro</span>
+    <div className="w-64 glass-dark h-screen fixed left-0 top-0 border-r border-white/5">
+      <div className="p-6 border-b border-white/5">
+        <Link to="/" className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center">
+            <Briefcase className="h-5 w-5 text-white" />
+          </div>
+          <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+            JobSeeker Pro
+          </span>
         </Link>
       </div>
 
-      <nav className="mt-6">
+      <nav className="mt-6 px-3">
         {links.map((link) => {
           const Icon = link.icon;
-          const isActive = pathname === link.href;
+          const isActive = location.pathname === link.href;
           return (
             <Link
               key={link.href}
-              href={link.href}
-              className={`flex items-center px-6 py-3 text-sm font-medium ${
+              to={link.href}
+              className={`flex items-center px-4 py-3 mb-1 rounded-lg text-sm font-medium transition-all ${
                 isActive
-                  ? 'bg-indigo-50 text-indigo-600 border-r-4 border-indigo-600'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-gradient-to-r from-purple-600/20 to-blue-600/20 text-white border-l-2 border-purple-500'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
               <Icon className="h-5 w-5 mr-3" />
@@ -76,10 +77,10 @@ export default function Sidebar({ role }: SidebarProps) {
         })}
       </nav>
 
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t">
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/5">
         <button
           onClick={handleLogout}
-          className="flex items-center w-full px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md"
+          className="flex items-center w-full px-4 py-3 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
         >
           <LogOut className="h-5 w-5 mr-3" />
           Logout

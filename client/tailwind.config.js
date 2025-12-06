@@ -1,12 +1,33 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        dark: {
+          900: '#0a0a0f',
+          800: '#12121a',
+          700: '#1a1a24',
+          600: '#22222e',
+          500: '#2a2a38',
+        },
+        accent: {
+          purple: '#8b5cf6',
+          blue: '#3b82f6',
+          pink: '#ec4899',
+        },
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'gradient-mesh': 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 50%, rgba(236, 72, 153, 0.1) 100%)',
+      },
+      backdropBlur: {
+        xs: '2px',
+      },
+    },
   },
   plugins: [],
 }
