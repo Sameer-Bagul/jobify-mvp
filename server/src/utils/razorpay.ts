@@ -1,10 +1,26 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || "",
-  key_secret: process.env.RAZORPAY_KEY_SECRET || "",
-});
+let razorpayInstance: Razorpay | null = null;
+
+function getRazorpayInstance(): Razorpay | null {
+  if (razorpayInstance) return razorpayInstance;
+  
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  
+  if (!keyId || !keySecret) {
+    console.warn("WARNING: Razorpay credentials not configured. Payment features will be unavailable.");
+    return null;
+  }
+  
+  razorpayInstance = new Razorpay({
+    key_id: keyId,
+    key_secret: keySecret,
+  });
+  
+  return razorpayInstance;
+}
 
 export interface OrderOptions {
   amount: number;
@@ -21,6 +37,14 @@ export interface CreateOrderResult {
 
 export async function createOrder(options: OrderOptions): Promise<CreateOrderResult> {
   try {
+    const razorpay = getRazorpayInstance();
+    if (!razorpay) {
+      return {
+        success: false,
+        error: "Payment gateway not configured. Please contact support.",
+      };
+    }
+    
     const order = await razorpay.orders.create({
       amount: options.amount * 100,
       currency: options.currency || "INR",
@@ -47,7 +71,12 @@ export function verifyPaymentSignature(
   signature: string
 ): boolean {
   try {
-    const secret = process.env.RAZORPAY_KEY_SECRET || "";
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+    if (!secret) {
+      console.error("Razorpay secret not configured");
+      return false;
+    }
+    
     const body = orderId + "|" + paymentId;
     
     const expectedSignature = crypto
@@ -64,6 +93,11 @@ export function verifyPaymentSignature(
 
 export async function fetchPayment(paymentId: string) {
   try {
+    const razorpay = getRazorpayInstance();
+    if (!razorpay) {
+      return { success: false, error: "Payment gateway not configured" };
+    }
+    
     const payment = await razorpay.payments.fetch(paymentId);
     return { success: true, payment };
   } catch (error: any) {
@@ -73,6 +107,11 @@ export async function fetchPayment(paymentId: string) {
 
 export async function refundPayment(paymentId: string, amount?: number) {
   try {
+    const razorpay = getRazorpayInstance();
+    if (!razorpay) {
+      return { success: false, error: "Payment gateway not configured" };
+    }
+    
     const refund = await razorpay.payments.refund(paymentId, {
       amount: amount ? amount * 100 : undefined,
     });
@@ -84,4 +123,8 @@ export async function refundPayment(paymentId: string, amount?: number) {
 
 export function getRazorpayKeyId(): string {
   return process.env.RAZORPAY_KEY_ID || "";
+}
+
+export function isRazorpayConfigured(): boolean {
+  return !!(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
 }

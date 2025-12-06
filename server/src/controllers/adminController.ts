@@ -129,7 +129,7 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getAllJobs = async (req: AuthRequest, res: Response) => {
+export const getAdminJobs = async (req: AuthRequest, res: Response) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const skip = (Number(page) - 1) * Number(limit);

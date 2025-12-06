@@ -7,6 +7,10 @@ import {
   completeOnboarding,
   updateProfile,
   uploadResume,
+  getSavedItems,
+  saveItem,
+  unsaveItem,
+  getActivityTimeline,
 } from "../controllers/userController.js";
 
 const router = Router();
@@ -45,5 +49,11 @@ router.post(
   upload.single("resume"),
   uploadResume
 );
+
+router.get("/saved-items", authenticateToken, requireRole("seeker"), getSavedItems);
+router.post("/saved-items", authenticateToken, requireRole("seeker"), saveItem);
+router.delete("/saved-items/:itemId", authenticateToken, requireRole("seeker"), unsaveItem);
+
+router.get("/activity", authenticateToken, getActivityTimeline);
 
 export default router;

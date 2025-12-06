@@ -123,7 +123,7 @@ export const getRecruiterJobs = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getJobById = async (req: AuthRequest, res: Response) => {
+export const getRecruiterJobById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
