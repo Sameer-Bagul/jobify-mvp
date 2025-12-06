@@ -1,0 +1,454 @@
+# 🚀 **END-TO-END GUIDE TO BUILD THE MVP (Server + Client + AI Features)**
+
+---
+
+# 1️⃣ **Define the Core MVP Scope**
+
+Your MVP must include:
+
+### **Job Seeker Features**
+
+* Signup / login
+* Onboarding (Gmail ID + App Password + Skills + Experience + Resume upload)
+* View job listings
+* Cold email automation (limit 20/day)
+* Subscription system (₹500/month)
+
+### **Recruiter Features**
+
+* Signup / login
+* Post jobs
+* See matching candidates
+* View candidate profiles
+
+### **Shared**
+
+* Single email template with dynamic fields
+* Resume attachment in cold emails
+* Dashboard with sidebar
+* "My Account" page to edit settings
+
+---
+
+# 2️⃣ **Architecture Overview**
+
+## **Client (Frontend)**
+
+**Tech:** Next.js (App Router), TailwindCSS, Zustand / Redux
+Handles:
+
+* UI pages
+* Authentication
+* State management
+* API communication
+
+## **Server (Backend)**
+
+**Tech:** Node.js + Express / Next.js API Routes
+Handles:
+
+* Authentication (JWT or NextAuth)
+* Database operations
+* Resume storage
+* Email sending via Gmail SMTP
+* Daily email limit counting
+* Subscription + payment
+
+## **Database**
+
+**Tech:** PostgreSQL or MongoDB
+Tables/Collections:
+
+* users
+* user_profiles
+* recruiters
+* jobs
+* cold_email_logs
+* subscriptions
+* resume uploads
+
+## **AI Components**
+
+Use OpenAI (or Llama) to:
+
+* Analyze resume
+* Generate email variations
+* Improve matching scores
+
+This is optional at MVP stage but easy to plug in.
+
+---
+
+# 3️⃣ **Database Schema (Minimal & Practical)**
+
+## **Users Table**
+
+```
+id
+email
+password_hash
+role (seeker or recruiter)
+created_at
+```
+
+## **UserProfile**
+
+```
+user_id
+name
+skills (array)
+experience (text)
+gmail_id
+gmail_app_password (encrypted)
+resume_url
+daily_email_sent_count
+last_email_reset_date
+subscription_status
+subscription_expiry
+```
+
+## **Recruiter Table**
+
+```
+user_id
+company_name
+recruiter_name
+```
+
+## **Jobs**
+
+```
+id
+recruiter_id
+title
+description
+required_skills
+created_at
+```
+
+## **ColdEmailLogs**
+
+```
+id
+user_id
+recruiter_email
+status (sent / failed)
+timestamp
+```
+
+---
+
+# 4️⃣ **Backend Implementation Guide (Server)**
+
+---
+
+## **4.1 Authentication**
+
+Use JWT or NextAuth (if using Next.js API routes).
+For backend API:
+
+* `POST /auth/signup`
+* `POST /auth/login`
+* Encrypt passwords with bcrypt.
+* Issue a JWT token valid for 7 days.
+
+---
+
+## **4.2 User Onboarding**
+
+Endpoint:
+`POST /user/onboarding`
+
+Fields:
+
+* gmail_id
+* gmail_app_password (encrypt using AES)
+* skills
+* experience
+* resume upload
+
+Upload resume to:
+
+* AWS S3
+* Firebase Storage
+* or local for MVP
+
+---
+
+## **4.3 Gmail SMTP Integration (Core Feature)**
+
+Use **nodemailer**:
+
+```js
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: gmailId,
+    pass: appPassword,
+  }
+});
+```
+
+### **Send Email Function**
+
+```js
+async function sendColdEmail({
+  user,
+  recruiter,
+  renderedTemplate,
+  resumePath
+}) {
+  return transporter.sendMail({
+    from: user.gmail_id,
+    to: recruiter.email,
+    subject: `Application for ${recruiter.job_role || "a role"} at ${recruiter.company_name}`,
+    html: renderedTemplate,
+    attachments: [
+      {
+        filename: "Resume.pdf",
+        path: resumePath
+      }
+    ]
+  });
+}
+```
+
+---
+
+## **4.4 Daily Email Limit**
+
+Every user has:
+
+* `daily_email_sent_count`
+* `last_email_reset_date`
+
+Cron job resets count every 24 hours.
+
+---
+
+## **4.5 Subscription System**
+
+MVP Options:
+
+1. **Razorpay** (best for India)
+2. Stripe (if global)
+
+When plan is active → allow cold emailing.
+
+---
+
+## **4.6 Recruiter Job Posting**
+
+Endpoints:
+
+* `POST /jobs`
+* `GET /jobs`
+* `GET /jobs/match/:jobId`
+
+---
+
+## **4.7 Candidate Matching Engine (Simple version)**
+
+Algorithm:
+
+* Extract job skills
+* Compare with candidate skills
+* Score based on overlap
+
+Return list sorted by match_score.
+
+---
+
+# 5️⃣ **Frontend Implementation (Next.js)**
+
+---
+
+## **5.1 Pages to build**
+
+### Public
+
+* `/` → Landing Page
+* `/login`
+* `/signup`
+* `/pricing`
+
+### Inside Dashboard (Protected)
+
+* `/dashboard`
+* `/jobs`
+* `/jobs/[id]`
+* `/email-automation`
+* `/my-account`
+* `/recruiter/jobs`
+* `/recruiter/candidates/[jobId]`
+
+---
+
+## **5.2 Sidebar Structure**
+
+```
+Dashboard
+Jobs
+Cold Email Automation
+Saved
+My Account
+```
+
+Recruiter sees:
+
+```
+Dashboard
+Post Job
+My Jobs
+Candidates
+My Account
+```
+
+---
+
+## **5.3 Onboarding UI**
+
+Step-by-step form:
+
+1. Basic details
+2. Gmail setup
+3. Skills & experience
+4. Resume upload
+5. Confirmation
+
+---
+
+## **5.4 Render Email Template**
+
+User preview page:
+
+```
+Hi {{recruiter_name}},
+I hope you're doing well...
+```
+
+Replace dynamic fields with actual values.
+
+---
+
+# 6️⃣ **Cold Email Automation Workflow**
+
+1. User selects recruiter list (internal DB list).
+2. Clicks **Send Emails**.
+3. Backend:
+
+   * Checks daily limit
+   * Generates final email using template
+   * Sends via Gmail SMTP
+   * Logs each send
+4. UI updates progress (e.g. “12 / 20 sent today”).
+
+---
+
+# 7️⃣ **AI Features (Optional but Easy)**
+
+---
+
+## **7.1 Resume Analyzer**
+
+Send resume text to OpenAI:
+
+```
+Extract skills, job titles, education, and experience from the following resume.
+```
+
+Update profile automatically.
+
+---
+
+## **7.2 Candidate Matching AI**
+
+Give job description + user profile to AI:
+
+```
+Score candidate relevance from 0–100.
+```
+
+Sort descending.
+
+---
+
+## **7.3 Email Personalization AI**
+
+AI rewrites email slightly for each recruiter:
+
+```
+Rewrite this cold email to sound natural and personalized:
+{{email_template}}
+Include recruiter name and company.
+```
+
+---
+
+# 8️⃣ **Deployment Guide**
+
+### **Frontend**
+
+* Vercel (recommended)
+* Netlify (good alternative)
+
+### **Backend**
+
+* Render
+* Railway
+* AWS EC2 (if advanced)
+
+### **Database**
+
+* Supabase
+* MongoDB Atlas
+* NeonDB (Postgres)
+
+### **File Storage for Resumes**
+
+* Supabase storage
+* Firebase Storage
+* AWS S3
+
+---
+
+# 9️⃣ **Full Dev Roadmap (Realistic)**
+
+### **Phase 1 (Backend Basics)**
+
+* Auth
+* User onboarding
+* Resume upload
+* Recruiter CRUD
+* Jobs CRUD
+
+### **Phase 2 (Cold Email System)**
+
+* Email template
+* SMTP integration
+* Sending engine
+* Daily email limit
+* Logs
+
+### **Phase 3 (Client UI)**
+
+* Dashboard
+* Sidebar
+* Onboarding UI
+* Job listing pages
+* Recruiter pages
+* Email automation tab
+
+### **Phase 4 (Premium + Matching)**
+
+* Subscription
+* Candidate matching engine
+* AI optimization
+* Email preview + personalization
+
+### **Phase 5 (Polish + Deployment)**
+
+* Mobile-responsive UI
+* Error handling
+* Monitoring
+* Live deployment
