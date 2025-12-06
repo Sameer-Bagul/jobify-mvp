@@ -137,6 +137,7 @@ export default function ForgotPassword() {
                     onChange={(e) => setEmail(e.target.value)}
                     className="input-dark pl-12"
                     placeholder="you@example.com"
+                    autoComplete="email"
                     required
                   />
                 </div>
@@ -170,6 +171,7 @@ export default function ForgotPassword() {
                     onChange={(e) => setOtp(e.target.value)}
                     className="input-dark pl-12 tracking-widest text-center text-xl"
                     placeholder="000000"
+                    autoComplete="one-time-code"
                     maxLength={6}
                     required
                   />
@@ -213,6 +215,7 @@ export default function ForgotPassword() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="input-dark pl-12"
                     placeholder="••••••••"
+                    autoComplete="new-password"
                     required
                   />
                 </div>
@@ -228,6 +231,7 @@ export default function ForgotPassword() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="input-dark pl-12"
                     placeholder="••••••••"
+                    autoComplete="new-password"
                     required
                   />
                 </div>

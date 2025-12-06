@@ -98,6 +98,7 @@ export default function Signup() {
                   onChange={(e) => setEmail(e.target.value)}
                   className="input-dark pl-12"
                   placeholder="you@example.com"
+                  autoComplete="email"
                   required
                 />
               </div>
@@ -113,6 +114,7 @@ export default function Signup() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="input-dark pl-12"
                   placeholder="••••••••"
+                  autoComplete="new-password"
                   minLength={6}
                   required
                 />
