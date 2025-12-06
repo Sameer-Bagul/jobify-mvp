@@ -5,7 +5,7 @@ import { useAuthStore } from '@/store/auth';
 
 interface LayoutProps {
   children: ReactNode;
-  role?: 'seeker' | 'recruiter';
+  role?: 'seeker' | 'recruiter' | 'admin';
 }
 
 export default function Layout({ children, role = 'seeker' }: LayoutProps) {

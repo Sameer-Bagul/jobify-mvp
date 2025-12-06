@@ -48,7 +48,7 @@ export default function Login() {
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center">
               <Briefcase className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-bold text-white">JobSeeker Pro</span>
+            <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">Jobify</span>
           </Link>
           <h1 className="text-3xl font-bold text-white mb-2">Welcome back</h1>
           <p className="text-gray-400">Sign in to continue your job search</p>
@@ -107,7 +107,13 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-6 text-center text-gray-400">
+          <div className="mt-4 text-center">
+            <Link to="/forgot-password" className="text-purple-400 hover:text-purple-300 transition-colors text-sm">
+              Forgot your password?
+            </Link>
+          </div>
+
+          <div className="mt-4 text-center text-gray-400">
             Don't have an account?{' '}
             <Link to="/signup" className="text-purple-400 hover:text-purple-300 transition-colors">
               Sign up

@@ -7,12 +7,16 @@ import {
   User, 
   LogOut,
   PlusCircle,
-  Users
+  Users,
+  CreditCard,
+  Settings,
+  FileText,
+  Shield
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 
 interface SidebarProps {
-  role: 'seeker' | 'recruiter';
+  role: 'seeker' | 'recruiter' | 'admin';
 }
 
 export default function Sidebar({ role }: SidebarProps) {
@@ -25,6 +29,7 @@ export default function Sidebar({ role }: SidebarProps) {
     { href: '/dashboard/jobs', label: 'Jobs', icon: Briefcase },
     { href: '/dashboard/email', label: 'Cold Email', icon: Mail },
     { href: '/dashboard/saved', label: 'Saved', icon: Bookmark },
+    { href: '/dashboard/subscription', label: 'Subscription', icon: CreditCard },
     { href: '/dashboard/account', label: 'My Account', icon: User },
   ];
 
@@ -36,7 +41,16 @@ export default function Sidebar({ role }: SidebarProps) {
     { href: '/dashboard/recruiter/account', label: 'My Account', icon: User },
   ];
 
-  const links = role === 'recruiter' ? recruiterLinks : seekerLinks;
+  const adminLinks = [
+    { href: '/dashboard/admin', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/dashboard/admin/users', label: 'Users', icon: Users },
+    { href: '/dashboard/admin/jobs', label: 'Jobs', icon: Briefcase },
+    { href: '/dashboard/admin/email-logs', label: 'Email Logs', icon: FileText },
+    { href: '/dashboard/admin/recruiters', label: 'Recruiters', icon: Shield },
+    { href: '/dashboard/admin/settings', label: 'Settings', icon: Settings },
+  ];
+
+  const links = role === 'admin' ? adminLinks : role === 'recruiter' ? recruiterLinks : seekerLinks;
 
   const handleLogout = () => {
     logout();
@@ -51,7 +65,7 @@ export default function Sidebar({ role }: SidebarProps) {
             <Briefcase className="h-5 w-5 text-white" />
           </div>
           <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-            JobSeeker Pro
+            Jobify
           </span>
         </Link>
       </div>
