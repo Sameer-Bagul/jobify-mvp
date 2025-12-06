@@ -8,7 +8,7 @@ if (!JWT_SECRET) {
 const getJwtSecret = () => JWT_SECRET || "dev-secret-not-for-production";
 
 export interface AuthRequest extends Request {
-  userId?: number;
+  userId?: string;
   userRole?: string;
 }
 
@@ -21,7 +21,7 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
   }
 
   try {
-    const decoded = jwt.verify(token, getJwtSecret()) as { userId: number; role: string };
+    const decoded = jwt.verify(token, getJwtSecret()) as { userId: string; role: string };
     req.userId = decoded.userId;
     req.userRole = decoded.role;
     next();
