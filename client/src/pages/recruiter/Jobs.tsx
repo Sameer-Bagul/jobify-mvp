@@ -56,7 +56,7 @@ export default function RecruiterJobs() {
   };
 
   return (
-    <Layout role="recruiter">
+    <Layout>
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>

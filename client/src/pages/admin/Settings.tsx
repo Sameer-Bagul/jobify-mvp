@@ -65,7 +65,7 @@ export default function AdminSettingsPage() {
 
   if (loading) {
     return (
-      <Layout role="admin">
+      <Layout>
         <div className="flex justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
         </div>
@@ -74,7 +74,7 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <Layout role="admin">
+    <Layout>
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>

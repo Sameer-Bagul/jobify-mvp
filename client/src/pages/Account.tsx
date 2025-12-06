@@ -81,7 +81,7 @@ export default function Account() {
 
   if (loading) {
     return (
-      <Layout role="seeker">
+      <Layout>
         <div className="flex items-center justify-center h-64">
           <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
         </div>
@@ -90,7 +90,7 @@ export default function Account() {
   }
 
   return (
-    <Layout role="seeker">
+    <Layout>
       <div className="max-w-2xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">My Account</h1>

@@ -41,7 +41,7 @@ export default function JobDetail() {
 
   if (loading) {
     return (
-      <Layout role="seeker">
+      <Layout>
         <div className="flex items-center justify-center h-64">
           <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
         </div>
@@ -51,7 +51,7 @@ export default function JobDetail() {
 
   if (!job) {
     return (
-      <Layout role="seeker">
+      <Layout>
         <div className="text-center py-12">
           <p className="text-gray-400">Job not found</p>
         </div>
@@ -60,7 +60,7 @@ export default function JobDetail() {
   }
 
   return (
-    <Layout role="seeker">
+    <Layout>
       <div className="max-w-4xl mx-auto">
         <button
           onClick={() => navigate(-1)}

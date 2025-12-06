@@ -57,7 +57,7 @@ export default function Candidates() {
   };
 
   return (
-    <Layout role="recruiter">
+    <Layout>
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Candidates</h1>

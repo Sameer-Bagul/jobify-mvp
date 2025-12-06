@@ -64,7 +64,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <Layout role="admin">
+    <Layout>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>

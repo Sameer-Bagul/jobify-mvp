@@ -54,7 +54,7 @@ export default function PostJob() {
   };
 
   return (
-    <Layout role="recruiter">
+    <Layout>
       <div className="max-w-2xl mx-auto">
         <button
           onClick={() => navigate(-1)}

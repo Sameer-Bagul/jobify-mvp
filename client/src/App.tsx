@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useAuthStore } from './store/auth';
+import ProtectedRoute from './components/ProtectedRoute';
 
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -35,29 +36,114 @@ function App() {
 
   return (
     <Routes>
+      {/* Public routes */}
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/onboarding" element={<Onboarding />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/dashboard/jobs" element={<Jobs />} />
-      <Route path="/dashboard/jobs/:id" element={<JobDetail />} />
-      <Route path="/dashboard/email" element={<Email />} />
-      <Route path="/dashboard/saved" element={<Saved />} />
-      <Route path="/dashboard/subscription" element={<Subscription />} />
-      <Route path="/dashboard/account" element={<Account />} />
-      <Route path="/dashboard/recruiter" element={<RecruiterDashboard />} />
-      <Route path="/dashboard/recruiter/jobs" element={<RecruiterJobs />} />
-      <Route path="/dashboard/recruiter/post-job" element={<PostJob />} />
-      <Route path="/dashboard/recruiter/candidates" element={<Candidates />} />
-      <Route path="/dashboard/recruiter/account" element={<RecruiterAccount />} />
-      <Route path="/dashboard/admin" element={<AdminDashboard />} />
-      <Route path="/dashboard/admin/users" element={<AdminUsers />} />
-      <Route path="/dashboard/admin/jobs" element={<AdminJobs />} />
-      <Route path="/dashboard/admin/email-logs" element={<AdminEmailLogs />} />
-      <Route path="/dashboard/admin/recruiters" element={<AdminRecruiters />} />
-      <Route path="/dashboard/admin/settings" element={<AdminSettings />} />
+      
+      {/* Onboarding - requires auth but no role restriction */}
+      <Route path="/onboarding" element={
+        <ProtectedRoute>
+          <Onboarding />
+        </ProtectedRoute>
+      } />
+      
+      {/* Job Seeker routes */}
+      <Route path="/dashboard" element={
+        <ProtectedRoute allowedRoles={['seeker']} requireOnboarding>
+          <Dashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/jobs" element={
+        <ProtectedRoute allowedRoles={['seeker']} requireOnboarding>
+          <Jobs />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/jobs/:id" element={
+        <ProtectedRoute allowedRoles={['seeker']} requireOnboarding>
+          <JobDetail />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/email" element={
+        <ProtectedRoute allowedRoles={['seeker']} requireOnboarding>
+          <Email />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/saved" element={
+        <ProtectedRoute allowedRoles={['seeker']} requireOnboarding>
+          <Saved />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/subscription" element={
+        <ProtectedRoute allowedRoles={['seeker']} requireOnboarding>
+          <Subscription />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/account" element={
+        <ProtectedRoute allowedRoles={['seeker']} requireOnboarding>
+          <Account />
+        </ProtectedRoute>
+      } />
+      
+      {/* Recruiter routes */}
+      <Route path="/dashboard/recruiter" element={
+        <ProtectedRoute allowedRoles={['recruiter']}>
+          <RecruiterDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/recruiter/jobs" element={
+        <ProtectedRoute allowedRoles={['recruiter']}>
+          <RecruiterJobs />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/recruiter/post-job" element={
+        <ProtectedRoute allowedRoles={['recruiter']}>
+          <PostJob />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/recruiter/candidates" element={
+        <ProtectedRoute allowedRoles={['recruiter']}>
+          <Candidates />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/recruiter/account" element={
+        <ProtectedRoute allowedRoles={['recruiter']}>
+          <RecruiterAccount />
+        </ProtectedRoute>
+      } />
+      
+      {/* Admin routes */}
+      <Route path="/dashboard/admin" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AdminDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/admin/users" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AdminUsers />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/admin/jobs" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AdminJobs />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/admin/email-logs" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AdminEmailLogs />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/admin/recruiters" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AdminRecruiters />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/admin/settings" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AdminSettings />
+        </ProtectedRoute>
+      } />
     </Routes>
   );
 }
