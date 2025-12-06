@@ -4,12 +4,7 @@ import jwt from "jsonwebtoken";
 import { User, UserProfile, Recruiter, ActivityLog } from "../models/index.js";
 import { generateOTP } from "../utils/encryption.js";
 import { sendOTPEmail } from "../utils/emailService.js";
-
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  console.warn("WARNING: JWT_SECRET not set. Using development fallback.");
-}
-const getJwtSecret = () => JWT_SECRET || "dev-secret-not-for-production";
+import { env } from "../config/env.js";
 
 export const signup = async (req: Request, res: Response) => {
   try {
@@ -43,8 +38,8 @@ export const signup = async (req: Request, res: Response) => {
     } else if (role === "recruiter") {
       await Recruiter.create({
         userId: newUser._id,
-        recruiterName: name || null,
-        companyName: companyName || null,
+        recruiterName: name || "Unnamed Recruiter",
+        companyName: companyName || "Company",
         recruiterEmail: email.toLowerCase(),
         isInternal: false,
       });
@@ -52,7 +47,7 @@ export const signup = async (req: Request, res: Response) => {
 
     const token = jwt.sign(
       { userId: newUser._id, role: newUser.role },
-      getJwtSecret(),
+      env.jwtSecret,
       { expiresIn: "7d" }
     );
 
@@ -105,7 +100,7 @@ export const login = async (req: Request, res: Response) => {
 
     const token = jwt.sign(
       { userId: user._id, role: user.role },
-      getJwtSecret(),
+      env.jwtSecret,
       { expiresIn: "7d" }
     );
 

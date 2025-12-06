@@ -38,9 +38,8 @@ const adminSettingsSchema = new Schema<IAdminSettings>({
   },
 });
 
-adminSettingsSchema.pre('save', function(next) {
+adminSettingsSchema.pre('save', function() {
   this.updatedAt = new Date();
-  next();
 });
 
 export const DEFAULT_SETTINGS = {

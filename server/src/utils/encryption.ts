@@ -1,11 +1,11 @@
 import crypto from "crypto";
+import { env } from "../config/env.js";
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "default-encryption-key-32-chars!";
 const IV_LENGTH = 16;
 const ALGORITHM = "aes-256-cbc";
 
 function getKey(): Buffer {
-  const key = ENCRYPTION_KEY;
+  const key = env.encryptionKey;
   if (key.length < 32) {
     return Buffer.concat([Buffer.from(key), Buffer.alloc(32 - key.length)]);
   }

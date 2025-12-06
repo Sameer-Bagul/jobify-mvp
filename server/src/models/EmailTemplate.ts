@@ -60,9 +60,8 @@ Best regards,
   },
 });
 
-emailTemplateSchema.pre('save', function(next) {
+emailTemplateSchema.pre('save', function() {
   this.updatedAt = new Date();
-  next();
 });
 
 emailTemplateSchema.index({ userId: 1 });

@@ -60,9 +60,8 @@ const userSchema = new Schema<IUser>({
   },
 });
 
-userSchema.pre('save', function(next) {
+userSchema.pre('save', function() {
   this.updatedAt = new Date();
-  next();
 });
 
 export default mongoose.model<IUser>("User", userSchema);

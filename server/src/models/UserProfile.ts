@@ -102,9 +102,8 @@ const userProfileSchema = new Schema<IUserProfile>({
   },
 });
 
-userProfileSchema.pre('save', function(next) {
+userProfileSchema.pre('save', function() {
   this.updatedAt = new Date();
-  next();
 });
 
 export default mongoose.model<IUserProfile>("UserProfile", userProfileSchema);

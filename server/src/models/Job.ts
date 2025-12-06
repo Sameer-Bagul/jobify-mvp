@@ -100,9 +100,8 @@ const jobSchema = new Schema<IJob>({
   },
 });
 
-jobSchema.pre('save', function(next) {
+jobSchema.pre('save', function() {
   this.updatedAt = new Date();
-  next();
 });
 
 jobSchema.index({ requiredSkills: 1 });

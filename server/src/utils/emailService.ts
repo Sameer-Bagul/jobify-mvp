@@ -80,19 +80,21 @@ export function fillTemplate(
   return filled;
 }
 
+import { env } from "../config/env.js";
+
 export async function sendOTPEmail(
   email: string,
   otp: string
 ): Promise<EmailResult> {
-  const systemGmail = process.env.SYSTEM_GMAIL_ID;
-  const systemPassword = process.env.SYSTEM_GMAIL_PASSWORD;
-  
-  if (!systemGmail || !systemPassword) {
+  if (!env.systemEmail.id || !env.systemEmail.password) {
     return {
       success: false,
       error: "System email not configured",
     };
   }
+
+  const systemGmail = env.systemEmail.id;
+  const systemPassword = env.systemEmail.password;
 
   try {
     const transporter = nodemailer.createTransport({

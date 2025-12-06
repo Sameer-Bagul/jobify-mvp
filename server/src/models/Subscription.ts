@@ -75,9 +75,8 @@ const subscriptionSchema = new Schema<ISubscription>({
   },
 });
 
-subscriptionSchema.pre('save', function(next) {
+subscriptionSchema.pre('save', function() {
   this.updatedAt = new Date();
-  next();
 });
 
 subscriptionSchema.index({ userId: 1, status: 1 });

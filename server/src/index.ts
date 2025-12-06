@@ -5,6 +5,7 @@ import path from "path";
 import cron from "node-cron";
 import { fileURLToPath } from "url";
 import connectDB from "./config/database.js";
+import { validateEnvironment, env } from "./config/env.js";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/users.js";
 import jobRoutes from "./routes/jobs.js";
@@ -16,14 +17,33 @@ import { UserProfile } from "./models/index.js";
 
 dotenv.config();
 
+// Validate environment variables on startup
+validateEnvironment();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = env.port;
+
+const allowedOrigins = [
+  env.frontendUrl,
+  "http://localhost:5001",
+  "http://localhost:5000",
+  "http://localhost:3000",
+];
 
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin) || env.isDevelopment) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
 }));
 app.use(express.json());
@@ -62,7 +82,7 @@ cron.schedule("0 0 * * *", async () => {
   }
 });
 
-if (process.env.NODE_ENV === "production") {
+if (env.isProduction) {
   const clientDist = path.join(__dirname, "../../client/dist");
   app.use(express.static(clientDist));
   app.get("*", (req, res, next) => {

@@ -1,18 +1,19 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
+import { env } from "../config/env.js";
 
 let razorpayInstance: Razorpay | null = null;
 
 function getRazorpayInstance(): Razorpay | null {
   if (razorpayInstance) return razorpayInstance;
   
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
-  
-  if (!keyId || !keySecret) {
+  if (!env.razorpay.keyId || !env.razorpay.keySecret) {
     console.warn("WARNING: Razorpay credentials not configured. Payment features will be unavailable.");
     return null;
   }
+  
+  const keyId = env.razorpay.keyId;
+  const keySecret = env.razorpay.keySecret;
   
   razorpayInstance = new Razorpay({
     key_id: keyId,
@@ -71,7 +72,7 @@ export function verifyPaymentSignature(
   signature: string
 ): boolean {
   try {
-    const secret = process.env.RAZORPAY_KEY_SECRET;
+    const secret = env.razorpay.keySecret;
     if (!secret) {
       console.error("Razorpay secret not configured");
       return false;
@@ -122,9 +123,9 @@ export async function refundPayment(paymentId: string, amount?: number) {
 }
 
 export function getRazorpayKeyId(): string {
-  return process.env.RAZORPAY_KEY_ID || "";
+  return env.razorpay.keyId || "";
 }
 
 export function isRazorpayConfigured(): boolean {
-  return !!(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
+  return !!(env.razorpay.keyId && env.razorpay.keySecret);
 }

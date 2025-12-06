@@ -1,11 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  console.warn("WARNING: JWT_SECRET not set. Using development fallback.");
-}
-const getJwtSecret = () => JWT_SECRET || "dev-secret-not-for-production";
+import { env } from "../config/env.js";
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -21,7 +16,7 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
   }
 
   try {
-    const decoded = jwt.verify(token, getJwtSecret()) as { userId: string; role: string };
+    const decoded = jwt.verify(token, env.jwtSecret) as { userId: string; role: string };
     req.userId = decoded.userId;
     req.userRole = decoded.role;
     next();

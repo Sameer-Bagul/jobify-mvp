@@ -24,11 +24,11 @@ const recruiterSchema = new Schema<IRecruiter>({
   },
   companyName: {
     type: String,
-    required: true,
+    default: null,
   },
   recruiterName: {
     type: String,
-    required: true,
+    default: null,
   },
   recruiterEmail: {
     type: String,
@@ -73,9 +73,8 @@ const recruiterSchema = new Schema<IRecruiter>({
   },
 });
 
-recruiterSchema.pre('save', function(next) {
+recruiterSchema.pre('save', function() {
   this.updatedAt = new Date();
-  next();
 });
 
 recruiterSchema.index({ recruiterEmail: 1 });
