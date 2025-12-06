@@ -3,16 +3,24 @@ import mongoose, { Document, Schema } from "mongoose";
 export interface IUserProfile extends Document {
   userId: mongoose.Types.ObjectId;
   name: string;
+  phone: string;
   skills: string[];
   experience: string;
+  projects: string;
+  education: string;
   gmailId: string;
   gmailAppPassword: string;
   resumeUrl: string;
+  resumeAnalysis: {
+    extractedSkills: string[];
+    experienceSummary: string;
+    projectsSummary: string;
+  };
   dailyEmailSentCount: number;
   lastEmailResetDate: Date;
-  subscriptionStatus: string;
-  subscriptionExpiry: Date;
+  onboardingCompleted: boolean;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 const userProfileSchema = new Schema<IUserProfile>({
@@ -26,11 +34,23 @@ const userProfileSchema = new Schema<IUserProfile>({
     type: String,
     default: null,
   },
+  phone: {
+    type: String,
+    default: null,
+  },
   skills: {
     type: [String],
     default: [],
   },
   experience: {
+    type: String,
+    default: null,
+  },
+  projects: {
+    type: String,
+    default: null,
+  },
+  education: {
     type: String,
     default: null,
   },
@@ -46,6 +66,20 @@ const userProfileSchema = new Schema<IUserProfile>({
     type: String,
     default: null,
   },
+  resumeAnalysis: {
+    extractedSkills: {
+      type: [String],
+      default: [],
+    },
+    experienceSummary: {
+      type: String,
+      default: null,
+    },
+    projectsSummary: {
+      type: String,
+      default: null,
+    },
+  },
   dailyEmailSentCount: {
     type: Number,
     default: 0,
@@ -54,18 +88,23 @@ const userProfileSchema = new Schema<IUserProfile>({
     type: Date,
     default: null,
   },
-  subscriptionStatus: {
-    type: String,
-    default: "inactive",
-  },
-  subscriptionExpiry: {
-    type: Date,
-    default: null,
+  onboardingCompleted: {
+    type: Boolean,
+    default: false,
   },
   createdAt: {
     type: Date,
     default: Date.now,
   },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+userProfileSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
 });
 
 export default mongoose.model<IUserProfile>("UserProfile", userProfileSchema);

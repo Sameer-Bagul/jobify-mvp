@@ -1,11 +1,15 @@
 import { Response } from "express";
-import nodemailer from "nodemailer";
-import { UserProfile, ColdEmailLog, Job } from "../models/index.js";
+import { UserProfile, ColdEmailLog, EmailTemplate, Subscription, ActivityLog, AdminSettings, Recruiter } from "../models/index.js";
 import { AuthRequest } from "../middleware/auth.js";
+import { sendEmail, fillTemplate } from "../utils/emailService.js";
 import path from "path";
-import fs from "fs";
 
-const DAILY_EMAIL_LIMIT = 20;
+const DEFAULT_DAILY_LIMIT = 20;
+
+const getDailyLimit = async (): Promise<number> => {
+  const setting = await AdminSettings.findOne({ key: "daily_email_limit" });
+  return setting ? Number(setting.value) : DEFAULT_DAILY_LIMIT;
+};
 
 export const getEmailStats = async (req: AuthRequest, res: Response) => {
   try {
@@ -13,6 +17,8 @@ export const getEmailStats = async (req: AuthRequest, res: Response) => {
     if (!profile) {
       return res.status(404).json({ error: "Profile not found" });
     }
+
+    const dailyLimit = await getDailyLimit();
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -26,14 +32,24 @@ export const getEmailStats = async (req: AuthRequest, res: Response) => {
       await profile.save();
     }
 
-    const totalSent = await ColdEmailLog.countDocuments({ userId: req.userId });
+    const totalSent = await ColdEmailLog.countDocuments({ userId: req.userId, status: "sent" });
+    const totalFailed = await ColdEmailLog.countDocuments({ userId: req.userId, status: "failed" });
+
+    const subscription = await Subscription.findOne({
+      userId: req.userId,
+      status: "active",
+      endDate: { $gte: new Date() },
+    });
 
     res.json({
       dailySent: profile.dailyEmailSentCount,
-      dailyLimit: DAILY_EMAIL_LIMIT,
-      remaining: DAILY_EMAIL_LIMIT - profile.dailyEmailSentCount,
+      dailyLimit,
+      remaining: dailyLimit - profile.dailyEmailSentCount,
       totalSent,
+      totalFailed,
       hasGmailSetup: !!(profile.gmailId && profile.gmailAppPassword),
+      hasResume: !!profile.resumeUrl,
+      isSubscribed: !!subscription,
     });
   } catch (error) {
     console.error("Get email stats error:", error);
@@ -41,14 +57,12 @@ export const getEmailStats = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const sendEmail = async (req: AuthRequest, res: Response) => {
+export const sendColdEmail = async (req: AuthRequest, res: Response) => {
   try {
-    const { recruiterEmail, subject, body, jobId } = req.body;
+    const { recruiterEmail, recruiterName, companyName, jobId, jobTitle, subject, body, templateId } = req.body;
 
-    if (!recruiterEmail || !subject || !body) {
-      return res.status(400).json({
-        error: "Recruiter email, subject, and body are required",
-      });
+    if (!recruiterEmail) {
+      return res.status(400).json({ error: "Recruiter email is required" });
     }
 
     const profile = await UserProfile.findOne({ userId: req.userId });
@@ -62,6 +76,21 @@ export const sendEmail = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    const subscription = await Subscription.findOne({
+      userId: req.userId,
+      status: "active",
+      endDate: { $gte: new Date() },
+    });
+
+    if (!subscription) {
+      return res.status(403).json({
+        error: "Subscription required to send cold emails",
+        requiresSubscription: true,
+      });
+    }
+
+    const dailyLimit = await getDailyLimit();
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -73,67 +102,78 @@ export const sendEmail = async (req: AuthRequest, res: Response) => {
       profile.lastEmailResetDate = today;
     }
 
-    if (profile.dailyEmailSentCount >= DAILY_EMAIL_LIMIT) {
+    if (profile.dailyEmailSentCount >= dailyLimit) {
       return res.status(429).json({
         error: "Daily email limit reached. Try again tomorrow.",
       });
     }
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: profile.gmailId,
-        pass: profile.gmailAppPassword,
-      },
-    });
+    let emailSubject = subject;
+    let emailBody = body;
 
-    const mailOptions: nodemailer.SendMailOptions = {
-      from: profile.gmailId,
-      to: recruiterEmail,
-      subject,
-      text: body,
-    };
-
-    if (profile.resumeUrl) {
-      const resumePath = path.join(process.cwd(), profile.resumeUrl);
-      if (fs.existsSync(resumePath)) {
-        mailOptions.attachments = [
-          {
-            filename: path.basename(profile.resumeUrl),
-            path: resumePath,
-          },
-        ];
+    if (templateId) {
+      const template = await EmailTemplate.findById(templateId);
+      if (template) {
+        const placeholders = {
+          recruiter_name: recruiterName || "Hiring Manager",
+          job_role: jobTitle || "the open position",
+          company_name: companyName || "your company",
+          skills: profile.skills?.join(", ") || "",
+          experience_summary: profile.experience || "",
+          user_name: profile.name || "",
+        };
+        emailSubject = fillTemplate(template.subject, placeholders);
+        emailBody = fillTemplate(template.body, placeholders);
       }
     }
 
-    try {
-      await transporter.sendMail(mailOptions);
+    const resumePath = profile.resumeUrl ? path.join(process.cwd(), profile.resumeUrl) : undefined;
 
+    const result = await sendEmail({
+      to: recruiterEmail,
+      subject: emailSubject || "Job Application",
+      body: emailBody || "Please find my application attached.",
+      gmailId: profile.gmailId,
+      gmailAppPassword: profile.gmailAppPassword,
+      attachResume: !!profile.resumeUrl,
+      resumePath,
+    });
+
+    const emailLog = await ColdEmailLog.create({
+      userId: req.userId,
+      recruiterEmail,
+      recruiterName,
+      companyName,
+      jobId: jobId || null,
+      jobTitle,
+      templateId: templateId || null,
+      subject: emailSubject,
+      body: emailBody,
+      status: result.success ? "sent" : "failed",
+      errorMessage: result.error || null,
+      resumeAttached: !!profile.resumeUrl,
+    });
+
+    if (result.success) {
       profile.dailyEmailSentCount += 1;
       await profile.save();
 
-      await ColdEmailLog.create({
+      await ActivityLog.create({
         userId: req.userId,
-        recruiterEmail,
-        jobId: jobId || null,
-        status: "sent",
+        action: `Sent email to ${recruiterName || recruiterEmail}`,
+        actionType: "email_sent",
+        details: { recruiterEmail, companyName, jobTitle },
       });
 
       res.json({
         message: "Email sent successfully",
-        remaining: DAILY_EMAIL_LIMIT - profile.dailyEmailSentCount,
+        remaining: dailyLimit - profile.dailyEmailSentCount,
+        emailLog,
       });
-    } catch (emailError: any) {
-      await ColdEmailLog.create({
-        userId: req.userId,
-        recruiterEmail,
-        jobId: jobId || null,
-        status: "failed",
-        errorMessage: emailError.message,
-      });
-
-      return res.status(500).json({
-        error: "Failed to send email. Please check your Gmail credentials.",
+    } else {
+      res.status(500).json({
+        error: result.error || "Failed to send email. Please check your Gmail credentials.",
+        emailLog,
       });
     }
   } catch (error) {
@@ -142,19 +182,254 @@ export const sendEmail = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const sendBulkEmails = async (req: AuthRequest, res: Response) => {
+  try {
+    const { recipients, subject, body, templateId } = req.body;
+
+    if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
+      return res.status(400).json({ error: "Recipients array is required" });
+    }
+
+    const profile = await UserProfile.findOne({ userId: req.userId });
+    if (!profile || !profile.gmailId || !profile.gmailAppPassword) {
+      return res.status(400).json({ error: "Gmail credentials not configured" });
+    }
+
+    const subscription = await Subscription.findOne({
+      userId: req.userId,
+      status: "active",
+      endDate: { $gte: new Date() },
+    });
+
+    if (!subscription) {
+      return res.status(403).json({ error: "Subscription required", requiresSubscription: true });
+    }
+
+    const dailyLimit = await getDailyLimit();
+    const remaining = dailyLimit - profile.dailyEmailSentCount;
+
+    if (remaining <= 0) {
+      return res.status(429).json({ error: "Daily email limit reached" });
+    }
+
+    const toSend = recipients.slice(0, remaining);
+    const results = { sent: 0, failed: 0, errors: [] as string[] };
+
+    for (const recipient of toSend) {
+      let emailSubject = subject;
+      let emailBody = body;
+
+      const placeholders = {
+        recruiter_name: recipient.recruiterName || "Hiring Manager",
+        job_role: recipient.jobTitle || "the open position",
+        company_name: recipient.companyName || "your company",
+        skills: profile.skills?.join(", ") || "",
+        experience_summary: profile.experience || "",
+        user_name: profile.name || "",
+      };
+
+      if (templateId) {
+        const template = await EmailTemplate.findById(templateId);
+        if (template) {
+          emailSubject = fillTemplate(template.subject, placeholders);
+          emailBody = fillTemplate(template.body, placeholders);
+        }
+      } else {
+        emailSubject = fillTemplate(emailSubject || "", placeholders);
+        emailBody = fillTemplate(emailBody || "", placeholders);
+      }
+
+      const resumePath = profile.resumeUrl ? path.join(process.cwd(), profile.resumeUrl) : undefined;
+
+      const result = await sendEmail({
+        to: recipient.email,
+        subject: emailSubject,
+        body: emailBody,
+        gmailId: profile.gmailId,
+        gmailAppPassword: profile.gmailAppPassword,
+        attachResume: !!profile.resumeUrl,
+        resumePath,
+      });
+
+      await ColdEmailLog.create({
+        userId: req.userId,
+        recruiterEmail: recipient.email,
+        recruiterName: recipient.recruiterName,
+        companyName: recipient.companyName,
+        jobTitle: recipient.jobTitle,
+        subject: emailSubject,
+        body: emailBody,
+        status: result.success ? "sent" : "failed",
+        errorMessage: result.error,
+        resumeAttached: !!profile.resumeUrl,
+      });
+
+      if (result.success) {
+        results.sent++;
+        profile.dailyEmailSentCount++;
+      } else {
+        results.failed++;
+        results.errors.push(`${recipient.email}: ${result.error}`);
+      }
+    }
+
+    await profile.save();
+
+    res.json({
+      message: `Sent ${results.sent} emails, ${results.failed} failed`,
+      results,
+      remaining: dailyLimit - profile.dailyEmailSentCount,
+      skipped: recipients.length - toSend.length,
+    });
+  } catch (error) {
+    console.error("Send bulk emails error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 export const getEmailLogs = async (req: AuthRequest, res: Response) => {
   try {
-    const logs = await ColdEmailLog.find({ userId: req.userId })
-      .populate({
-        path: "jobId",
-        select: "title",
-      })
-      .sort({ timestamp: -1 })
-      .limit(50);
+    const { page = 1, limit = 50, status, startDate, endDate } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
 
-    res.json({ logs });
+    const query: any = { userId: req.userId };
+    if (status) query.status = status;
+    if (startDate || endDate) {
+      query.timestamp = {};
+      if (startDate) query.timestamp.$gte = new Date(startDate as string);
+      if (endDate) query.timestamp.$lte = new Date(endDate as string);
+    }
+
+    const logs = await ColdEmailLog.find(query)
+      .populate("jobId", "title company")
+      .sort({ timestamp: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+
+    const total = await ColdEmailLog.countDocuments(query);
+
+    res.json({
+      logs,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit)),
+      },
+    });
   } catch (error) {
     console.error("Get email logs error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getEmailTemplates = async (req: AuthRequest, res: Response) => {
+  try {
+    const templates = await EmailTemplate.find({ userId: req.userId }).sort({ isDefault: -1, createdAt: -1 });
+    res.json({ templates });
+  } catch (error) {
+    console.error("Get email templates error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const createEmailTemplate = async (req: AuthRequest, res: Response) => {
+  try {
+    const { name, subject, body, isDefault } = req.body;
+
+    if (!name || !subject || !body) {
+      return res.status(400).json({ error: "Name, subject, and body are required" });
+    }
+
+    if (isDefault) {
+      await EmailTemplate.updateMany({ userId: req.userId }, { isDefault: false });
+    }
+
+    const template = await EmailTemplate.create({
+      userId: req.userId,
+      name,
+      subject,
+      body,
+      isDefault: isDefault || false,
+    });
+
+    res.status(201).json({
+      message: "Template created successfully",
+      template,
+    });
+  } catch (error) {
+    console.error("Create email template error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const updateEmailTemplate = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, subject, body, isDefault } = req.body;
+
+    const template = await EmailTemplate.findOne({ _id: id, userId: req.userId });
+    if (!template) {
+      return res.status(404).json({ error: "Template not found" });
+    }
+
+    if (isDefault) {
+      await EmailTemplate.updateMany({ userId: req.userId, _id: { $ne: id } }, { isDefault: false });
+    }
+
+    if (name !== undefined) template.name = name;
+    if (subject !== undefined) template.subject = subject;
+    if (body !== undefined) template.body = body;
+    if (isDefault !== undefined) template.isDefault = isDefault;
+
+    await template.save();
+
+    res.json({
+      message: "Template updated successfully",
+      template,
+    });
+  } catch (error) {
+    console.error("Update email template error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const deleteEmailTemplate = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const template = await EmailTemplate.findOneAndDelete({ _id: id, userId: req.userId });
+    if (!template) {
+      return res.status(404).json({ error: "Template not found" });
+    }
+
+    res.json({ message: "Template deleted successfully" });
+  } catch (error) {
+    console.error("Delete email template error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getAvailableRecruiters = async (req: AuthRequest, res: Response) => {
+  try {
+    const { search, company, industry } = req.query;
+
+    const query: any = { isInternal: true };
+    if (search) {
+      query.$or = [
+        { recruiterName: { $regex: search, $options: "i" } },
+        { recruiterEmail: { $regex: search, $options: "i" } },
+        { companyName: { $regex: search, $options: "i" } },
+      ];
+    }
+    if (company) query.companyName = { $regex: company, $options: "i" };
+    if (industry) query.industry = { $regex: industry, $options: "i" };
+
+    const recruiters = await Recruiter.find(query).limit(100);
+
+    res.json({ recruiters });
+  } catch (error) {
+    console.error("Get available recruiters error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

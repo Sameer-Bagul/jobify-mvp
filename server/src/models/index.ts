@@ -4,6 +4,10 @@ export { default as Recruiter } from "./Recruiter.js";
 export { default as Job } from "./Job.js";
 export { default as ColdEmailLog } from "./ColdEmailLog.js";
 export { default as Subscription } from "./Subscription.js";
+export { default as EmailTemplate } from "./EmailTemplate.js";
+export { default as AdminSettings, DEFAULT_SETTINGS } from "./AdminSettings.js";
+export { default as SavedItem } from "./SavedItem.js";
+export { default as ActivityLog } from "./ActivityLog.js";
 
 export type { IUser } from "./User.js";
 export type { IUserProfile } from "./UserProfile.js";
@@ -11,3 +15,7 @@ export type { IRecruiter } from "./Recruiter.js";
 export type { IJob } from "./Job.js";
 export type { IColdEmailLog } from "./ColdEmailLog.js";
 export type { ISubscription } from "./Subscription.js";
+export type { IEmailTemplate } from "./EmailTemplate.js";
+export type { IAdminSettings } from "./AdminSettings.js";
+export type { ISavedItem } from "./SavedItem.js";
+export type { IActivityLog } from "./ActivityLog.js";
