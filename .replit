@@ -66,3 +66,9 @@ externalPort = 80
 deploymentTarget = "autoscale"
 run = ["bash", "-c", "cd server && NODE_ENV=production node dist/index.js"]
 build = ["bash", "-c", "cd client && npm run build && cd ../server && npm run build"]
+
+[userenv]
+
+[userenv.shared]
+JWT_SECRET = "4a3c91d6cfbc5095d587b578d87c253cbe9de2f899c7d4ad59f45b5d2826f31c"
+ENCRYPTION_KEY = "611b6cce25138cde948ba87b71954b10ff4476b1a13fe36f28a24c0af3787e1f"
