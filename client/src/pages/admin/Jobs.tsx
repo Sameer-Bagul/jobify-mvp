@@ -27,9 +27,10 @@ export default function AdminJobs() {
   const fetchJobs = async () => {
     try {
       const res = await api.get('/admin/jobs');
-      setJobs(res.data);
+      setJobs(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Failed to fetch jobs:', err);
+      setJobs([]);
     } finally {
       setLoading(false);
     }
@@ -49,10 +50,10 @@ export default function AdminJobs() {
     }
   };
 
-  const filteredJobs = jobs.filter(job =>
-    job.title.toLowerCase().includes(search.toLowerCase()) ||
-    job.company.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredJobs = Array.isArray(jobs) ? jobs.filter(job =>
+    job.title?.toLowerCase().includes(search.toLowerCase()) ||
+    job.company?.toLowerCase().includes(search.toLowerCase())
+  ) : [];
 
   return (
     <Layout>

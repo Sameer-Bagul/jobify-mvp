@@ -131,9 +131,10 @@ Best regards`);
   const fetchLogs = async () => {
     try {
       const res = await api.get('/email/logs');
-      setLogs(res.data);
+      setLogs(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Failed to fetch logs:', err);
+      setLogs([]); // Ensure logs is always an array
     }
   };
 
@@ -687,62 +688,30 @@ Best regards`);
           </div>
         </div>
 
-        <div className="card border border-dark-600">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-purple-500/20 rounded-lg">
-              <BarChart3 className="h-5 w-5 text-purple-400" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-white">Recent Activity</h2>
-              <p className="text-sm text-gray-400">Your latest email communications</p>
-            </div>
+          <div className="card">
+            <h2 className="text-xl font-semibold text-white mb-4">Recent Emails</h2>
+            
+            {logs.length === 0 ? (
+              <p className="text-gray-400 text-center py-8">No emails sent yet</p>
+            ) : (
+              <div className="space-y-3">
+                {logs.slice(0, 10).map((log) => (
+                  <div key={log._id} className="p-3 bg-dark-700 rounded-lg">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-white text-sm font-medium truncate">
+                        {log.recipientEmail}
+                      </span>
+                      {getStatusIcon(log.status)}
+                    </div>
+                    <p className="text-gray-400 text-sm truncate">{log.subject}</p>
+                    <p className="text-gray-500 text-xs mt-1">
+                      {new Date(log.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-
-          {logs.length === 0 ? (
-            <div className="text-center py-8">
-              <Mail className="h-12 w-12 text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-400">No emails sent yet</p>
-              <p className="text-sm text-gray-500">Your sent emails will appear here</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-dark-600">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Recipient</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Subject</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Status</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.slice(0, 10).map((log) => (
-                    <tr key={log._id} className="border-b border-dark-700 hover:bg-dark-700/50">
-                      <td className="py-3 px-4">
-                        <span className="text-white text-sm">{log.recipientEmail}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-gray-400 text-sm truncate max-w-[200px] block">
-                          {log.subject}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="flex items-center gap-2">
-                          {getStatusIcon(log.status)}
-                          <span className="text-sm capitalize text-gray-400">{log.status}</span>
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-gray-500 text-sm">
-                          {new Date(log.createdAt).toLocaleDateString()}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
       </div>
     </Layout>

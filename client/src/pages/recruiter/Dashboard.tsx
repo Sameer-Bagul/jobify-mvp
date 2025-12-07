@@ -17,7 +17,7 @@ export default function RecruiterDashboard() {
     const fetchStats = async () => {
       try {
         const res = await api.get('/recruiters/jobs');
-        const jobs = res.data;
+        const jobs = Array.isArray(res.data) ? res.data : [];
         setStats({
           totalJobs: jobs.length,
           activeJobs: jobs.filter((j: { isActive: boolean }) => j.isActive).length,

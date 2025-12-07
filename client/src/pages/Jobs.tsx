@@ -25,9 +25,11 @@ export default function Jobs() {
     const fetchJobs = async () => {
       try {
         const res = await api.get('/jobs');
-        setJobs(res.data);
+        // API returns { jobs: [], pagination: {} }
+        setJobs(Array.isArray(res.data.jobs) ? res.data.jobs : Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error('Failed to fetch jobs:', err);
+        setJobs([]); // Ensure jobs is always an array
       } finally {
         setLoading(false);
       }
@@ -35,12 +37,12 @@ export default function Jobs() {
     fetchJobs();
   }, []);
 
-  const filteredJobs = jobs.filter(
+  const filteredJobs = Array.isArray(jobs) ? jobs.filter(
     (job) =>
       job.title.toLowerCase().includes(search.toLowerCase()) ||
       job.company.toLowerCase().includes(search.toLowerCase()) ||
       job.requiredSkills.some((skill) => skill.toLowerCase().includes(search.toLowerCase()))
-  );
+  ) : [];
 
   return (
     <Layout>

@@ -26,9 +26,10 @@ export default function AdminUsers() {
   const fetchUsers = async () => {
     try {
       const res = await api.get('/admin/users');
-      setUsers(res.data);
+      setUsers(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Failed to fetch users:', err);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -48,10 +49,10 @@ export default function AdminUsers() {
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(search.toLowerCase()) ||
-    user.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredUsers = Array.isArray(users) ? users.filter(user =>
+    user.name?.toLowerCase().includes(search.toLowerCase()) ||
+    user.email?.toLowerCase().includes(search.toLowerCase())
+  ) : [];
 
   return (
     <Layout>

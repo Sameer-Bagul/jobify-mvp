@@ -29,9 +29,10 @@ export default function AdminEmailLogs() {
   const fetchLogs = async () => {
     try {
       const res = await api.get('/admin/email-logs');
-      setLogs(res.data);
+      setLogs(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Failed to fetch email logs:', err);
+      setLogs([]);
     } finally {
       setLoading(false);
     }
@@ -63,14 +64,14 @@ export default function AdminEmailLogs() {
     }
   };
 
-  const filteredLogs = logs.filter(log => {
+  const filteredLogs = Array.isArray(logs) ? logs.filter(log => {
     const matchesSearch = 
-      log.recipientEmail.toLowerCase().includes(search.toLowerCase()) ||
-      log.subject.toLowerCase().includes(search.toLowerCase()) ||
+      log.recipientEmail?.toLowerCase().includes(search.toLowerCase()) ||
+      log.subject?.toLowerCase().includes(search.toLowerCase()) ||
       log.userId?.name?.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'all' || log.status === statusFilter;
     return matchesSearch && matchesStatus;
-  });
+  }) : [];
 
   return (
     <Layout>

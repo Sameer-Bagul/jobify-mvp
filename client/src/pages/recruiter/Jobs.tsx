@@ -28,9 +28,10 @@ export default function RecruiterJobs() {
   const fetchJobs = async () => {
     try {
       const res = await api.get('/recruiters/jobs');
-      setJobs(res.data);
+      setJobs(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Failed to fetch jobs:', err);
+      setJobs([]);
     } finally {
       setLoading(false);
     }

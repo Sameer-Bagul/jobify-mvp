@@ -28,9 +28,10 @@ export default function AdminRecruiters() {
   const fetchRecruiters = async () => {
     try {
       const res = await api.get('/admin/recruiters');
-      setRecruiters(res.data);
+      setRecruiters(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Failed to fetch recruiters:', err);
+      setRecruiters([]);
     } finally {
       setLoading(false);
     }
@@ -89,11 +90,11 @@ export default function AdminRecruiters() {
     setFormData({ name: '', email: '', company: '' });
   };
 
-  const filteredRecruiters = recruiters.filter(r =>
-    r.name.toLowerCase().includes(search.toLowerCase()) ||
-    r.email.toLowerCase().includes(search.toLowerCase()) ||
-    r.company.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredRecruiters = Array.isArray(recruiters) ? recruiters.filter(r =>
+    r.name?.toLowerCase().includes(search.toLowerCase()) ||
+    r.email?.toLowerCase().includes(search.toLowerCase()) ||
+    r.company?.toLowerCase().includes(search.toLowerCase())
+  ) : [];
 
   return (
     <Layout>

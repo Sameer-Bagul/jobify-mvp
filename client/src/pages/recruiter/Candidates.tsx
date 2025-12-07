@@ -28,7 +28,7 @@ export default function Candidates() {
     const fetchJobs = async () => {
       try {
         const res = await api.get('/recruiters/jobs');
-        setJobs(res.data);
+        setJobs(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error('Failed to fetch jobs:', err);
       }
@@ -48,9 +48,10 @@ export default function Candidates() {
     setLoading(true);
     try {
       const res = await api.get(`/jobs/match/${selectedJob}`);
-      setCandidates(res.data);
+      setCandidates(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Failed to fetch candidates:', err);
+      setCandidates([]);
     } finally {
       setLoading(false);
     }
