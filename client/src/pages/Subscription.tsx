@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
-import { CreditCard, Check, Zap, Mail, Sparkles, Crown, Loader2 } from 'lucide-react';
+import { CreditCard, Check, Sparkles, Crown, Loader2, Briefcase, Mail } from 'lucide-react';
 import api from '@/lib/api';
+
+interface SubscriptionData {
+  planName: string;
+  amount: number;
+  startDate: string;
+  endDate: string;
+  daysRemaining: number;
+}
 
 interface SubscriptionStatus {
   isSubscribed: boolean;
-  plan: string;
-  emailsRemaining: number;
-  dailyLimit: number;
-  expiresAt?: string;
+  subscription: SubscriptionData | null;
 }
 
 declare global {
@@ -38,58 +43,22 @@ interface RazorpayResponse {
   razorpay_signature: string;
 }
 
-const plans = [
-  {
-    name: 'Free',
-    price: 0,
-    period: '',
-    features: [
-      '20 cold emails per day',
-      'Basic job matching',
-      'Email templates',
-      'Job search & filters',
-    ],
-    icon: Mail,
-    color: 'gray',
-    current: true,
-  },
-  {
-    name: 'Pro',
-    price: 499,
-    period: '/month',
-    features: [
-      '100 cold emails per day',
-      'AI-powered job matching',
-      'Custom email templates',
-      'Priority job listings',
-      'Resume builder',
-      'Analytics dashboard',
-    ],
-    icon: Zap,
-    color: 'purple',
-    popular: true,
-  },
-  {
-    name: 'Premium',
-    price: 999,
-    period: '/month',
-    features: [
-      'Unlimited cold emails',
-      'Advanced AI matching',
-      'All Pro features',
-      'Dedicated support',
-      'Early access to jobs',
-      'Company insights',
-    ],
-    icon: Crown,
-    color: 'blue',
-  },
+const PLAN_PRICE = 500;
+const PLAN_FEATURES = [
+  'Access to all job listings',
+  '20 cold emails per day',
+  'AI-powered job matching',
+  'Custom email templates',
+  'Priority job listings',
+  'Resume builder',
+  'Analytics dashboard',
 ];
 
 export default function Subscription() {
   const [status, setStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
-  const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [purchasing, setPurchasing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStatus();
@@ -97,6 +66,7 @@ export default function Subscription() {
   }, []);
 
   const loadRazorpayScript = () => {
+    if (document.querySelector('script[src*="razorpay"]')) return;
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
@@ -114,23 +84,25 @@ export default function Subscription() {
     }
   };
 
-  const handleSubscribe = async (planName: string, amount: number) => {
-    if (planName === 'Free') return;
-    
-    setPurchasing(planName);
+  const handleSubscribe = async () => {
+    setPurchasing(true);
+    setError(null);
     
     try {
-      const orderRes = await api.post('/subscription/create-order', {
-        plan: planName.toLowerCase(),
-        amount: amount * 100,
-      });
+      const orderRes = await api.post('/subscription/create-order', {});
+
+      if (!orderRes.data.keyId) {
+        setError('Payment gateway not configured. Please contact support.');
+        setPurchasing(false);
+        return;
+      }
 
       const options: RazorpayOptions = {
         key: orderRes.data.keyId,
         amount: orderRes.data.amount,
         currency: orderRes.data.currency,
         name: 'Jobify',
-        description: `${planName} Subscription`,
+        description: 'Pro Monthly Subscription',
         order_id: orderRes.data.orderId,
         handler: async (response: RazorpayResponse) => {
           try {
@@ -138,11 +110,11 @@ export default function Subscription() {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
-              plan: planName.toLowerCase(),
             });
             fetchStatus();
           } catch (err) {
             console.error('Payment verification failed:', err);
+            setError('Payment verification failed. Please contact support.');
           }
         },
         theme: { color: '#9333ea' },
@@ -150,22 +122,23 @@ export default function Subscription() {
 
       const razorpay = new window.Razorpay(options);
       razorpay.open();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to create order:', err);
+      setError(err.response?.data?.error || 'Failed to initiate payment. Please try again.');
     } finally {
-      setPurchasing(null);
+      setPurchasing(false);
     }
   };
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-2xl mx-auto">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-600/10 border border-purple-500/20 text-purple-400 text-sm mb-6">
             <Sparkles className="h-4 w-4" />
             Upgrade your job search
           </div>
-          <h1 className="text-4xl font-bold text-white mb-4">Choose Your Plan</h1>
+          <h1 className="text-4xl font-bold text-white mb-4">Pro Subscription</h1>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto">
             Unlock powerful features to supercharge your job search and stand out from the crowd
           </p>
@@ -177,101 +150,92 @@ export default function Subscription() {
           </div>
         ) : (
           <>
-            {status?.isSubscribed && (
+            {status?.isSubscribed && status.subscription && (
               <div className="mb-8 p-6 card bg-gradient-to-r from-purple-600/10 to-blue-600/10 border-purple-500/20">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold text-white mb-1">
-                      Current Plan: {status.plan}
+                      You're Subscribed!
                     </h3>
                     <p className="text-gray-400">
-                      {status.emailsRemaining} emails remaining today (Daily limit: {status.dailyLimit})
+                      Plan: {status.subscription.planName}
                     </p>
-                    {status.expiresAt && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        Expires: {new Date(status.expiresAt).toLocaleDateString()}
-                      </p>
-                    )}
+                    <p className="text-sm text-gray-500 mt-1">
+                      {status.subscription.daysRemaining} days remaining - Expires: {new Date(status.subscription.endDate).toLocaleDateString()}
+                    </p>
                   </div>
                   <Crown className="h-10 w-10 text-purple-400" />
                 </div>
               </div>
             )}
 
-            <div className="grid md:grid-cols-3 gap-6">
-              {plans.map((plan) => {
-                const Icon = plan.icon;
-                const isCurrentPlan = status?.plan?.toLowerCase() === plan.name.toLowerCase();
-                
-                return (
-                  <div
-                    key={plan.name}
-                    className={`card relative ${
-                      plan.popular ? 'border-purple-500/50 ring-2 ring-purple-500/20' : ''
-                    }`}
-                  >
-                    {plan.popular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-xs font-medium text-white">
-                        Most Popular
-                      </div>
-                    )}
+            {error && (
+              <div className="mb-6 p-4 bg-red-600/10 border border-red-500/20 rounded-lg text-red-400 text-center">
+                {error}
+              </div>
+            )}
 
-                    <div className="text-center mb-6">
-                      <div className={`w-14 h-14 rounded-xl bg-${plan.color}-600/20 flex items-center justify-center mx-auto mb-4`}>
-                        <Icon className={`h-7 w-7 text-${plan.color}-400`} />
-                      </div>
-                      <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
-                      <div className="flex items-end justify-center gap-1">
-                        <span className="text-4xl font-bold text-white">
-                          {plan.price === 0 ? 'Free' : `₹${plan.price}`}
-                        </span>
-                        {plan.period && (
-                          <span className="text-gray-400 mb-1">{plan.period}</span>
-                        )}
-                      </div>
-                    </div>
+            <div className="card border-purple-500/50 ring-2 ring-purple-500/20 relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-xs font-medium text-white">
+                Recommended
+              </div>
 
-                    <ul className="space-y-3 mb-8">
-                      {plan.features.map((feature, i) => (
-                        <li key={i} className="flex items-center gap-3 text-gray-300">
-                          <Check className="h-5 w-5 text-green-400 flex-shrink-0" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 rounded-xl bg-purple-600/20 flex items-center justify-center mx-auto mb-4">
+                  <Crown className="h-8 w-8 text-purple-400" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">Pro Monthly</h3>
+                <div className="flex items-end justify-center gap-1">
+                  <span className="text-5xl font-bold text-white">₹{PLAN_PRICE}</span>
+                  <span className="text-gray-400 mb-2">/month</span>
+                </div>
+              </div>
 
-                    <button
-                      onClick={() => handleSubscribe(plan.name, plan.price)}
-                      disabled={isCurrentPlan || plan.price === 0 || purchasing === plan.name}
-                      className={`w-full py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
-                        isCurrentPlan
-                          ? 'bg-dark-700 text-gray-500 cursor-not-allowed'
-                          : plan.popular
-                          ? 'btn-primary'
-                          : 'bg-dark-700 text-white hover:bg-dark-600'
-                      }`}
-                    >
-                      {purchasing === plan.name ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : isCurrentPlan ? (
-                        'Current Plan'
-                      ) : plan.price === 0 ? (
-                        'Current Plan'
-                      ) : (
-                        <>
-                          <CreditCard className="h-5 w-5" />
-                          Subscribe
-                        </>
-                      )}
-                    </button>
-                  </div>
-                );
-              })}
+              <div className="grid md:grid-cols-2 gap-4 mb-8">
+                <div className="flex items-center gap-3 p-3 bg-dark-700/50 rounded-lg">
+                  <Briefcase className="h-5 w-5 text-purple-400" />
+                  <span className="text-gray-300">Job Listings Access</span>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-dark-700/50 rounded-lg">
+                  <Mail className="h-5 w-5 text-purple-400" />
+                  <span className="text-gray-300">20 Emails/Day</span>
+                </div>
+              </div>
+
+              <ul className="space-y-3 mb-8">
+                {PLAN_FEATURES.map((feature, i) => (
+                  <li key={i} className="flex items-center gap-3 text-gray-300">
+                    <Check className="h-5 w-5 text-green-400 flex-shrink-0" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                onClick={handleSubscribe}
+                disabled={status?.isSubscribed || purchasing}
+                className={`w-full py-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 text-lg ${
+                  status?.isSubscribed
+                    ? 'bg-dark-700 text-gray-500 cursor-not-allowed'
+                    : 'btn-primary'
+                }`}
+              >
+                {purchasing ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : status?.isSubscribed ? (
+                  'Already Subscribed'
+                ) : (
+                  <>
+                    <CreditCard className="h-5 w-5" />
+                    Subscribe Now
+                  </>
+                )}
+              </button>
             </div>
 
-            <div className="mt-12 text-center">
+            <div className="mt-8 text-center">
               <p className="text-gray-400">
-                All plans include secure payment processing via Razorpay.
+                Secure payment processing via Razorpay.
                 <br />
                 Cancel anytime. No hidden fees.
               </p>
