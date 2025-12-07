@@ -61,7 +61,7 @@ export const signup = async (req: Request, res: Response) => {
     res.status(201).json({
       message: "User created successfully",
       token,
-      user: { id: newUser._id, email: newUser.email, role: newUser.role },
+      user: { id: newUser._id, email: newUser.email, role: newUser.role, onboardingCompleted: false },
     });
   } catch (error) {
     console.error("Signup error:", error);
@@ -111,10 +111,20 @@ export const login = async (req: Request, res: Response) => {
       details: {},
     });
 
+    // Check onboarding status based on role
+    let onboardingCompleted = true;
+    if (user.role === "seeker") {
+      const profile = await UserProfile.findOne({ userId: user._id });
+      onboardingCompleted = profile?.onboardingCompleted ?? false;
+    } else if (user.role === "recruiter") {
+      const recruiter = await Recruiter.findOne({ userId: user._id });
+      onboardingCompleted = recruiter?.onboardingCompleted ?? false;
+    }
+
     res.json({
       message: "Login successful",
       token,
-      user: { id: user._id, email: user.email, role: user.role },
+      user: { id: user._id, email: user.email, role: user.role, onboardingCompleted },
     });
   } catch (error) {
     console.error("Login error:", error);

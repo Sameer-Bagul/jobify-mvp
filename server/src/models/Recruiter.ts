@@ -12,6 +12,7 @@ export interface IRecruiter extends Document {
   isInternal: boolean;
   addedBy: mongoose.Types.ObjectId | null;
   notes: string;
+  onboardingCompleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -62,6 +63,10 @@ const recruiterSchema = new Schema<IRecruiter>({
   notes: {
     type: String,
     default: null,
+  },
+  onboardingCompleted: {
+    type: Boolean,
+    default: false,
   },
   createdAt: {
     type: Date,

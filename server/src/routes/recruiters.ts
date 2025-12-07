@@ -3,6 +3,7 @@ import { authenticateToken, requireRole } from "../middleware/auth.js";
 import {
   getRecruiterProfile,
   updateRecruiterProfile,
+  completeRecruiterOnboarding,
   createJob,
   getRecruiterJobs,
   getRecruiterJobById,
@@ -16,6 +17,7 @@ const router = Router();
 
 router.get("/profile", authenticateToken, requireRole("recruiter"), getRecruiterProfile);
 router.put("/profile", authenticateToken, requireRole("recruiter"), updateRecruiterProfile);
+router.post("/onboarding", authenticateToken, requireRole("recruiter"), completeRecruiterOnboarding);
 router.get("/dashboard", authenticateToken, requireRole("recruiter"), getRecruiterDashboardStats);
 
 router.post("/jobs", authenticateToken, requireRole("recruiter"), createJob);

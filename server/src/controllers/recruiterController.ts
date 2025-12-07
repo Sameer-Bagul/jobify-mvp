@@ -46,6 +46,39 @@ export const updateRecruiterProfile = async (req: AuthRequest, res: Response) =>
   }
 };
 
+export const completeRecruiterOnboarding = async (req: AuthRequest, res: Response) => {
+  try {
+    const { companyName, recruiterName, phone, linkedinUrl, industry, location } = req.body;
+
+    if (!companyName || !recruiterName) {
+      return res.status(400).json({ error: "Company name and recruiter name are required" });
+    }
+
+    let recruiter = await Recruiter.findOne({ userId: req.userId });
+    if (!recruiter) {
+      return res.status(404).json({ error: "Recruiter profile not found" });
+    }
+
+    recruiter.companyName = companyName;
+    recruiter.recruiterName = recruiterName;
+    if (phone !== undefined) recruiter.phone = phone;
+    if (linkedinUrl !== undefined) recruiter.linkedinUrl = linkedinUrl;
+    if (industry !== undefined) recruiter.industry = industry;
+    if (location !== undefined) recruiter.location = location;
+    recruiter.onboardingCompleted = true;
+
+    await recruiter.save();
+
+    res.json({
+      message: "Onboarding completed successfully",
+      recruiter,
+    });
+  } catch (error) {
+    console.error("Complete recruiter onboarding error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 export const createJob = async (req: AuthRequest, res: Response) => {
   try {
     const {
@@ -84,7 +117,7 @@ export const createJob = async (req: AuthRequest, res: Response) => {
       salaryMin: salaryMin || 0,
       salaryMax: salaryMax || 0,
       salaryCurrency: salaryCurrency || "INR",
-      applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : null,
+      applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : undefined,
     });
 
     res.status(201).json({

@@ -21,10 +21,12 @@ export default function Login() {
       const res = await api.post('/auth/login', { email, password });
       setAuth(res.data.token, res.data.user);
       
-      if (!res.data.user.onboardingCompleted && res.data.user.role === 'seeker') {
+      if (!res.data.user.onboardingCompleted) {
         navigate('/onboarding');
       } else if (res.data.user.role === 'recruiter') {
         navigate('/dashboard/recruiter');
+      } else if (res.data.user.role === 'admin') {
+        navigate('/dashboard/admin');
       } else {
         navigate('/dashboard');
       }

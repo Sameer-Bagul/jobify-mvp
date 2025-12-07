@@ -22,11 +22,7 @@ export default function Signup() {
       const res = await api.post('/auth/signup', { email, password, role });
       setAuth(res.data.token, res.data.user);
       
-      if (role === 'seeker') {
-        navigate('/onboarding');
-      } else {
-        navigate('/dashboard/recruiter');
-      }
+      navigate('/onboarding');
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };
       setError(error.response?.data?.message || 'Signup failed');

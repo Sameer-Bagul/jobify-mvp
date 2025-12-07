@@ -88,27 +88,27 @@ function App() {
       
       {/* Recruiter routes */}
       <Route path="/dashboard/recruiter" element={
-        <ProtectedRoute allowedRoles={['recruiter']}>
+        <ProtectedRoute allowedRoles={['recruiter']} requireOnboarding>
           <RecruiterDashboard />
         </ProtectedRoute>
       } />
       <Route path="/dashboard/recruiter/jobs" element={
-        <ProtectedRoute allowedRoles={['recruiter']}>
+        <ProtectedRoute allowedRoles={['recruiter']} requireOnboarding>
           <RecruiterJobs />
         </ProtectedRoute>
       } />
       <Route path="/dashboard/recruiter/post-job" element={
-        <ProtectedRoute allowedRoles={['recruiter']}>
+        <ProtectedRoute allowedRoles={['recruiter']} requireOnboarding>
           <PostJob />
         </ProtectedRoute>
       } />
       <Route path="/dashboard/recruiter/candidates" element={
-        <ProtectedRoute allowedRoles={['recruiter']}>
+        <ProtectedRoute allowedRoles={['recruiter']} requireOnboarding>
           <Candidates />
         </ProtectedRoute>
       } />
       <Route path="/dashboard/recruiter/account" element={
-        <ProtectedRoute allowedRoles={['recruiter']}>
+        <ProtectedRoute allowedRoles={['recruiter']} requireOnboarding>
           <RecruiterAccount />
         </ProtectedRoute>
       } />
