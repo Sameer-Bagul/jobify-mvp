@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { User, UserProfile, Job, Recruiter, ColdEmailLog, Subscription, AdminSettings, DEFAULT_SETTINGS } from "../models/index.js";
 import { AuthRequest } from "../middleware/auth.js";
+import { parse } from "csv-parse/sync";
 
 export const getDashboardStats = async (req: AuthRequest, res: Response) => {
   try {
@@ -312,6 +313,88 @@ export const updateSettings = async (req: AuthRequest, res: Response) => {
     res.json({ message: "Setting updated successfully", setting });
   } catch (error) {
     console.error("Update settings error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const uploadRecruitersCSV = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "CSV file is required" });
+    }
+
+    const csvContent = req.file.buffer.toString("utf-8");
+    
+    let records;
+    try {
+      records = parse(csvContent, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+      });
+    } catch (parseError) {
+      return res.status(400).json({ error: "Invalid CSV format" });
+    }
+
+    if (!records || records.length === 0) {
+      return res.status(400).json({ error: "CSV file is empty" });
+    }
+
+    const results = {
+      total: records.length,
+      success: 0,
+      failed: 0,
+      errors: [] as string[],
+    };
+
+    for (let i = 0; i < records.length; i++) {
+      const row = records[i] as Record<string, string>;
+      const rowNum = i + 2;
+
+      const recruiterEmail = row.recruiterEmail || row.email || row.Email || row.recruiter_email;
+      const recruiterName = row.recruiterName || row.name || row.Name || row.recruiter_name;
+      const companyName = row.companyName || row.company || row.Company || row.company_name;
+
+      if (!recruiterEmail) {
+        results.failed++;
+        results.errors.push(`Row ${rowNum}: Email is required`);
+        continue;
+      }
+
+      const existing = await Recruiter.findOne({ recruiterEmail });
+      if (existing) {
+        results.failed++;
+        results.errors.push(`Row ${rowNum}: Email ${recruiterEmail} already exists`);
+        continue;
+      }
+
+      try {
+        const newRecruiter = new Recruiter({
+          recruiterEmail,
+          recruiterName: recruiterName || null,
+          companyName: companyName || null,
+          phone: row.phone || row.Phone || null,
+          linkedinUrl: row.linkedinUrl || row.linkedin || row.LinkedIn || null,
+          industry: row.industry || row.Industry || null,
+          location: row.location || row.Location || null,
+          notes: row.notes || row.Notes || null,
+          isInternal: true,
+          addedBy: req.userId,
+        });
+        await newRecruiter.save();
+        results.success++;
+      } catch (err) {
+        results.failed++;
+        results.errors.push(`Row ${rowNum}: Failed to create recruiter`);
+      }
+    }
+
+    res.json({
+      message: `Imported ${results.success} recruiters successfully`,
+      results,
+    });
+  } catch (error) {
+    console.error("Upload recruiters CSV error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

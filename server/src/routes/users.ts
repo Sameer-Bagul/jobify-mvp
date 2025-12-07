@@ -42,6 +42,7 @@ const upload = multer({
 router.get("/me", authenticateToken, getMe);
 router.post("/onboarding", authenticateToken, requireRole("seeker"), completeOnboarding);
 router.put("/profile", authenticateToken, requireRole("seeker"), updateProfile);
+router.put("/profile/gmail", authenticateToken, requireRole("seeker"), updateProfile);
 router.post(
   "/upload-resume",
   authenticateToken,

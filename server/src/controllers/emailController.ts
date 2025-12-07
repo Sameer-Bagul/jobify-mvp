@@ -1,14 +1,17 @@
 import { Response } from "express";
-import { UserProfile, ColdEmailLog, EmailTemplate, Subscription, ActivityLog, AdminSettings, Recruiter } from "../models/index.js";
+import { UserProfile, ColdEmailLog, EmailTemplate, Subscription, ActivityLog, Recruiter } from "../models/index.js";
 import { AuthRequest } from "../middleware/auth.js";
 import { sendEmail, fillTemplate } from "../utils/emailService.js";
 import path from "path";
+import { PLAN_CONFIGS, PlanTier, ISubscription } from "../models/Subscription.js";
 
 const DEFAULT_DAILY_LIMIT = 20;
 
-const getDailyLimit = async (): Promise<number> => {
-  const setting = await AdminSettings.findOne({ key: "daily_email_limit" });
-  return setting ? Number(setting.value) : DEFAULT_DAILY_LIMIT;
+const getDailyLimitForSubscription = (subscription: ISubscription | null): number => {
+  if (!subscription) return 0;
+  if (subscription.dailyEmailLimit) return subscription.dailyEmailLimit;
+  const planConfig = PLAN_CONFIGS[subscription.planTier as PlanTier];
+  return planConfig?.dailyEmailLimit || DEFAULT_DAILY_LIMIT;
 };
 
 export const getEmailStats = async (req: AuthRequest, res: Response) => {
@@ -18,7 +21,13 @@ export const getEmailStats = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: "Profile not found" });
     }
 
-    const dailyLimit = await getDailyLimit();
+    const subscription = await Subscription.findOne({
+      userId: req.userId,
+      status: "active",
+      endDate: { $gte: new Date() },
+    });
+
+    const dailyLimit = getDailyLimitForSubscription(subscription);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -35,21 +44,17 @@ export const getEmailStats = async (req: AuthRequest, res: Response) => {
     const totalSent = await ColdEmailLog.countDocuments({ userId: req.userId, status: "sent" });
     const totalFailed = await ColdEmailLog.countDocuments({ userId: req.userId, status: "failed" });
 
-    const subscription = await Subscription.findOne({
-      userId: req.userId,
-      status: "active",
-      endDate: { $gte: new Date() },
-    });
-
     res.json({
       dailySent: profile.dailyEmailSentCount,
       dailyLimit,
-      remaining: dailyLimit - profile.dailyEmailSentCount,
+      remaining: Math.max(0, dailyLimit - profile.dailyEmailSentCount),
       totalSent,
       totalFailed,
       hasGmailSetup: !!(profile.gmailId && profile.gmailAppPassword),
       hasResume: !!profile.resumeUrl,
       isSubscribed: !!subscription,
+      planName: subscription?.planName || null,
+      planTier: subscription?.planTier || null,
     });
   } catch (error) {
     console.error("Get email stats error:", error);
@@ -89,7 +94,7 @@ export const sendColdEmail = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const dailyLimit = await getDailyLimit();
+    const dailyLimit = getDailyLimitForSubscription(subscription);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -104,7 +109,7 @@ export const sendColdEmail = async (req: AuthRequest, res: Response) => {
 
     if (profile.dailyEmailSentCount >= dailyLimit) {
       return res.status(429).json({
-        error: "Daily email limit reached. Try again tomorrow.",
+        error: `Daily email limit (${dailyLimit}) reached. Try again tomorrow or upgrade your plan.`,
       });
     }
 
@@ -144,13 +149,13 @@ export const sendColdEmail = async (req: AuthRequest, res: Response) => {
       recruiterEmail,
       recruiterName,
       companyName,
-      jobId: jobId || null,
+      jobId: jobId || undefined,
       jobTitle,
-      templateId: templateId || null,
+      templateId: templateId || undefined,
       subject: emailSubject,
       body: emailBody,
       status: result.success ? "sent" : "failed",
-      errorMessage: result.error || null,
+      errorMessage: result.error || undefined,
       resumeAttached: !!profile.resumeUrl,
     });
 
@@ -205,11 +210,11 @@ export const sendBulkEmails = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: "Subscription required", requiresSubscription: true });
     }
 
-    const dailyLimit = await getDailyLimit();
+    const dailyLimit = getDailyLimitForSubscription(subscription);
     const remaining = dailyLimit - profile.dailyEmailSentCount;
 
     if (remaining <= 0) {
-      return res.status(429).json({ error: "Daily email limit reached" });
+      return res.status(429).json({ error: `Daily email limit (${dailyLimit}) reached. Upgrade your plan for more.` });
     }
 
     const toSend = recipients.slice(0, remaining);

@@ -43,6 +43,7 @@ export const userApi = {
   getMe: () => api.get('/users/me'),
   updateOnboarding: (data: object) => api.post('/users/onboarding', data),
   updateProfile: (data: object) => api.put('/users/profile', data),
+  updateGmailCredentials: (data: { gmailId: string; gmailAppPassword: string }) => api.put('/users/profile/gmail', data),
   uploadResume: (formData: FormData) => api.post('/users/upload-resume', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),

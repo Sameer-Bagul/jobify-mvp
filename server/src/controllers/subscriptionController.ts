@@ -2,8 +2,8 @@ import { Response } from "express";
 import { Subscription, UserProfile, ActivityLog } from "../models/index.js";
 import { AuthRequest } from "../middleware/auth.js";
 import { createOrder, verifyPaymentSignature, getRazorpayKeyId } from "../utils/razorpay.js";
+import { PLAN_CONFIGS, PlanTier } from "../models/Subscription.js";
 
-const SUBSCRIPTION_AMOUNT = 500;
 const SUBSCRIPTION_CURRENCY = "INR";
 
 export const getSubscriptionStatus = async (req: AuthRequest, res: Response) => {
@@ -25,6 +25,8 @@ export const getSubscriptionStatus = async (req: AuthRequest, res: Response) => 
       isSubscribed: true,
       subscription: {
         planName: subscription.planName,
+        planTier: subscription.planTier,
+        dailyEmailLimit: subscription.dailyEmailLimit,
         amount: subscription.amount,
         startDate: subscription.startDate,
         endDate: subscription.endDate,
@@ -41,15 +43,23 @@ export const getSubscriptionStatus = async (req: AuthRequest, res: Response) => 
 
 export const createSubscriptionOrder = async (req: AuthRequest, res: Response) => {
   try {
+    const { planTier = "pro" } = req.body;
+    
+    if (!["pro", "pro_plus", "pro_max"].includes(planTier)) {
+      return res.status(400).json({ error: "Invalid plan tier" });
+    }
+
+    const planConfig = PLAN_CONFIGS[planTier as PlanTier];
     const receipt = `sub_${req.userId}_${Date.now()}`;
 
     const result = await createOrder({
-      amount: SUBSCRIPTION_AMOUNT,
+      amount: planConfig.price,
       currency: SUBSCRIPTION_CURRENCY,
       receipt,
       notes: {
         userId: req.userId!.toString(),
         type: "subscription",
+        planTier,
       },
     });
 
@@ -59,8 +69,10 @@ export const createSubscriptionOrder = async (req: AuthRequest, res: Response) =
 
     const subscription = await Subscription.create({
       userId: req.userId,
-      planName: "Pro Monthly",
-      amount: SUBSCRIPTION_AMOUNT,
+      planName: planConfig.name,
+      planTier: planTier as PlanTier,
+      dailyEmailLimit: planConfig.dailyEmailLimit,
+      amount: planConfig.price,
       currency: SUBSCRIPTION_CURRENCY,
       status: "pending",
       razorpayOrderId: result.order.id,
@@ -72,6 +84,8 @@ export const createSubscriptionOrder = async (req: AuthRequest, res: Response) =
       currency: result.order.currency,
       keyId: getRazorpayKeyId(),
       subscriptionId: subscription._id,
+      planName: planConfig.name,
+      planTier,
     });
   } catch (error) {
     console.error("Create subscription order error:", error);
@@ -184,6 +198,23 @@ export const checkSubscriptionRequired = async (req: AuthRequest, res: Response,
     next();
   } catch (error) {
     console.error("Check subscription error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getAvailablePlans = async (_req: AuthRequest, res: Response) => {
+  try {
+    const plans = Object.values(PLAN_CONFIGS).map(plan => ({
+      tier: plan.tier,
+      name: plan.name,
+      price: plan.price,
+      dailyEmailLimit: plan.dailyEmailLimit,
+      features: plan.features,
+    }));
+
+    res.json({ plans });
+  } catch (error) {
+    console.error("Get available plans error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
