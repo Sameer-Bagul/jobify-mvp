@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { 
   Send, Loader2, CheckCircle, AlertCircle, Clock, Mail, 
-  Settings, BarChart3, Users, Search, Building2, MapPin,
+  Settings, Users, Search, Building2, MapPin,
   Eye, EyeOff, Save, RefreshCw, UserPlus, Crown, Zap,
   TrendingUp, XCircle, Filter
 } from 'lucide-react';
@@ -688,30 +688,29 @@ Best regards`);
           </div>
         </div>
 
-          <div className="card">
-            <h2 className="text-xl font-semibold text-white mb-4">Recent Emails</h2>
-            
-            {logs.length === 0 ? (
-              <p className="text-gray-400 text-center py-8">No emails sent yet</p>
-            ) : (
-              <div className="space-y-3">
-                {logs.slice(0, 10).map((log) => (
-                  <div key={log._id} className="p-3 bg-dark-700 rounded-lg">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-white text-sm font-medium truncate">
-                        {log.recipientEmail}
-                      </span>
-                      {getStatusIcon(log.status)}
-                    </div>
-                    <p className="text-gray-400 text-sm truncate">{log.subject}</p>
-                    <p className="text-gray-500 text-xs mt-1">
-                      {new Date(log.createdAt).toLocaleDateString()}
-                    </p>
+        <div className="card border border-dark-600">
+          <h2 className="text-xl font-semibold text-white mb-4">Recent Emails</h2>
+          
+          {logs.length === 0 ? (
+            <p className="text-gray-400 text-center py-8">No emails sent yet</p>
+          ) : (
+            <div className="space-y-3">
+              {logs.slice(0, 10).map((log) => (
+                <div key={log._id} className="p-3 bg-dark-700 rounded-lg">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-white text-sm font-medium truncate">
+                      {log.recipientEmail}
+                    </span>
+                    {getStatusIcon(log.status)}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  <p className="text-gray-400 text-sm truncate">{log.subject}</p>
+                  <p className="text-gray-500 text-xs mt-1">
+                    {new Date(log.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </Layout>
